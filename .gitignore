@@ -1,0 +1,23 @@
+# data
+data/raw/
+data/interim/
+
+# artifacts & models
+artifacts/
+*.joblib
+*.parquet
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# IDEs & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env

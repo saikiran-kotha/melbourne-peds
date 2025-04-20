@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pandas
+scikit-learn
+xgboost
+joblib
+pytz
+holidays
+pyarrow
+azure-storage-blob
+azure-identity
+azure-keyvault-secrets
+
