@@ -39,7 +39,7 @@ def add_is_holiday(df: pd.DataFrame,
 
 
 def add_lags(df: pd.DataFrame,
-             lags: tuple[int, ...] = (1, 24),
+             lags: tuple[int, ...] = (24, 168), # Default updated
              target_col: str = "Total_of_Directions") -> pd.DataFrame:
     """
     Append lag feature columns for each sensor.
@@ -69,7 +69,7 @@ def add_lockdown_flag(df: pd.DataFrame,
     df = df.copy()
     dts = pd.to_datetime(df[date_col]).dt.tz_localize("Australia/Melbourne")
 
-    # vectorised test: OR‑reduce across all windows
+    # vectorized test: OR‑reduce across all windows
     mask = pd.Series(False, index=df.index)
     for start, end in LOCK_WINDOWS:
         mask |= (dts >= start) & (dts <= end)
@@ -78,27 +78,27 @@ def add_lockdown_flag(df: pd.DataFrame,
     return df
 
 
-def add_roll3h(df, target_col="Total_of_Directions"):
-    """
-    Add a 3‑hour rolling mean per sensor, shifted by 1 hour to avoid leakage.
-    """
-    df = df.copy()
-
-    # Ensure rows are sorted — already true in your cleaner, but be explicit
-    df = df.sort_values(["Sensor_Name", "Sensing_Date", "HourDay"],
-                        ignore_index=True)
-
-    # Compute rolling mean for each sensor
-    roll = (
-        df.groupby("Sensor_Name")[target_col]
-          .rolling(window=3, min_periods=1)
-          .mean()
-          .shift(1)                      # <-- lag by one hour
-          .reset_index(level=0, drop=True)
-    )
-
-    df["roll3h"] = roll
-    return df
+# def add_roll3h(df, target_col="Total_of_Directions"): # Removed for now, as it's not used in the model.'
+#     """
+#     Add a 3‑hour rolling mean per sensor, shifted by 1hour to avoid leakage.
+#     """
+#     df = df.copy()
+#
+#     # Ensure rows are sorted — already true in your cleaner, but be explicit
+#     df = df.sort_values(["Sensor_Name", "Sensing_Date", "HourDay"],
+#                         ignore_index=True)
+#
+#     # Compute rolling mean for each sensor
+#     roll = (
+#         df.groupby("Sensor_Name")[target_col]
+#           .rolling(window=3, min_periods=1)
+#           .mean()
+#           .shift(1)                      # <-- lag by one hour
+#           .reset_index(level=0, drop=True)
+#     )
+#
+#     df["roll3h"] = roll
+#     return df
 
 
 def add_day_of_week(df):

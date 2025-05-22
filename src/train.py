@@ -1,7 +1,7 @@
 from pathlib import Path
 import joblib
 from src.load import clean_data
-from src.features import add_is_holiday, add_lags, add_lockdown_flag, add_roll3h, add_day_of_week
+from src.features import add_is_holiday, add_lags, add_lockdown_flag, add_day_of_week
 import pandas as pd
 from collections import deque
 from sklearn.compose import ColumnTransformer
@@ -10,12 +10,12 @@ from sklearn.metrics import mean_absolute_error
 import xgboost as xgb
 
 ARTIFACT_DIR = Path("src/artifacts")
-ARTIFACT_DIR.mkdir(exist_ok=True)
+ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
 
 CUT_DATE_VAL = pd.Timestamp(year=2024, month=12, day=1)
-LAGS = (1, 24, 168)
+LAGS = (24, 168)
 
-FEATURES_NUM = ["HourDay", "lag_1h", "lag_24h", "lag_168h", "roll3h"]
+FEATURES_NUM = ["HourDay", "lag_24h", "lag_168h"]
 FEATURES_CAT = ["Sensor_Name", "is_holiday", "is_lockdown", "day_of_week"]
 
 ped, sensors = clean_data()
@@ -25,9 +25,9 @@ ped = (
     .pipe(add_lockdown_flag)
     .pipe(add_day_of_week)
     .pipe(add_lags, lags=LAGS)
-    .pipe(add_roll3h)
+    # .pipe(add_roll3h)
     # Drop rows that still have NaNs in lag columns
-    .dropna(subset=["lag_1h", "lag_24h", "lag_168h", "roll3h"])
+    .dropna(subset=["lag_24h", "lag_168h"])
 )
 
 X = ped[FEATURES_NUM + FEATURES_CAT]
@@ -42,15 +42,16 @@ y_train, y_val = y[train_mask], y[~train_mask]
 print("Mean hourly count :", y_train.mean())
 print("Std hourly count :", y_train.std())
 
-naive_pred = X_val['lag_1h'].values
-naive_mae = mean_absolute_error(y_val, naive_pred)
-print("Naive MAE (lag_1h):", naive_mae)
+# naive_pred = X_val['lag_1h'].values
+# naive_mae = mean_absolute_error(y_val, naive_pred)
+# print("Naive MAE (lag_1h):", naive_mae)
 
 naive_week = X_val['lag_168h'].values
 print("Naive 168h MAE:", mean_absolute_error(y_val, naive_week))
 
 demo = ped[ped['Sensor_Name'] == ped['Sensor_Name'].iloc[0]].head(6)
-print(demo[['HourDay', 'Total_of_Directions', 'roll3h']])
+print("Demo data (first 6 rows, one sensor):")
+print(demo[['HourDay', 'Total_of_Directions', 'lag_24h', 'lag_168h']])
 
 t0 = pd.Timestamp("2024-11-25 00:00")
 buffers = {}  # {sensor_name: {'lag': deque, 'roll': deque}}
@@ -64,7 +65,7 @@ for sensor in ped['Sensor_Name'].unique():
 
     buffers[sensor] = {
         'lag': deque(counts, maxlen=168),
-        'roll': deque(counts[-3:], maxlen=3)
+        # 'roll': deque(counts[-3:], maxlen=3)
     }
 
 
@@ -79,7 +80,7 @@ X_train_enc = pre.fit_transform(X_train)   # fits on train
 X_val_enc = pre.transform(X_val)         # transform only
 
 model = xgb.XGBRegressor(
-    n_estimators=4000,
+    n_estimators=3000,
     learning_rate=0.05,
     max_depth=8,
     subsample=0.8,
